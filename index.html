@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>All-in Messenger</title>
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #0a0a0a;
+    --border: #1c1c1e;
+    --text: #f2f2f2;
+    --muted: #8e8e93;
+    --sent: #0a84ff;
+    --received: #1c1c1e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .app { display: flex; height: 100%; }
+  aside { width: 280px; background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; }
+  aside h1 { font-size: 20px; margin: 0; padding: 16px; border-bottom: 1px solid var(--border); }
+  .contact { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .contact:hover, .contact.active { background: #151517; }
+  .contact small { display: block; color: var(--muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  header { padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; background: var(--panel); }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 70%; padding: 8px 12px; border-radius: 18px; word-wrap: break-word; }
+  .msg.sent { align-self: flex-end; background: var(--sent); color: #fff; }
+  .msg.received { align-self: flex-start; background: var(--received); }
+  form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--panel); }
+  input { flex: 1; background: #000; color: var(--text); border: 1px solid var(--border);
+    border-radius: 20px; padding: 10px 16px; font: inherit; outline: none; }
+  input:focus { border-color: var(--sent); }
+  button { background: var(--sent); color: #fff; border: 0; border-radius: 20px;
+    padding: 0 20px; font: inherit; cursor: pointer; }
+  button:hover { filter: brightness(1.1); }
+  @media (max-width: 600px) { aside { display: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>Messages</h1>
+    <div id="contacts"></div>
+  </aside>
+  <main>
+    <header id="title"></header>
+    <div id="messages"></div>
+    <form id="form">
+      <input id="input" placeholder="Message" autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </main>
+</div>
+<script>
+  const CONTACTS = ["Alex", "Sam", "Jordan"];
+  const KEY = "allin-chats";
+  let chats = {};
+  try { chats = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+  let current = CONTACTS[0];
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(chats)); } catch (e) {} };
+  const $ = id => document.getElementById(id);
+
+  function renderContacts() {
+    $("contacts").innerHTML = "";
+    CONTACTS.forEach(name => {
+      const list = chats[name] || [];
+      const last = list.length ? list[list.length - 1].text : "No messages yet";
+      const el = document.createElement("div");
+      el.className = "contact" + (name === current ? " active" : "");
+      const strong = document.createElement("strong"); strong.textContent = name;
+      const small = document.createElement("small"); small.textContent = last;
+      el.append(strong, small);
+      el.onclick = () => { current = name; render(); };
+      $("contacts").append(el);
+    });
+  }
+
+  function renderMessages() {
+    $("title").textContent = current;
+    const box = $("messages");
+    box.innerHTML = "";
+    (chats[current] || []).forEach(m => {
+      const el = document.createElement("div");
+      el.className = "msg " + m.from;
+      el.textContent = m.text;
+      box.append(el);
+    });
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function render() { renderContacts(); renderMessages(); }
+
+  function add(name, from, text) {
+    (chats[name] = chats[name] || []).push({ from, text });
+    save();
+    if (name === current) render(); else renderContacts();
+  }
+
+  $("form").addEventListener("submit", e => {
+    e.preventDefault();
+    const text = $("input").value.trim();
+    if (!text) return;
+    $("input").value = "";
+    const to = current;
+    add(to, "sent", text);
+    setTimeout(() => add(to, "received", "Got it: " + text), 800);
+  });
+
+  render();
+</script>
+</body>
+</html>
